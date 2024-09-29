@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATA_PATH: /home/runner/work/sf-street-cleaning/data  # Set your DATA_PATH environment variable here
+      DATA_PATH: /home/runner/work/sf-street-cleaning/sf-street-cleaning/data  # Set your DATA_PATH environment variable here
 
     steps:
       # Checkout the repository
