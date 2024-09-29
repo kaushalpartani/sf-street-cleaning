@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SF Street Cleaning Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a237e 0%, #3f51b5 100%);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            z-index: 1000;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .header p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            font-weight: 300;
+            opacity: 0.8;
+        }
+        #map-container {
+            position: relative;
+            flex-grow: 1;
+        }
+        #search-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: 90%;
+            max-width: 400px;
+        }
+        #neighborhood-search {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            box-sizing: border-box;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        #neighborhood-search:focus {
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        #neighborhood-search::placeholder {
+            color: rgba(0, 0, 0, 0.5);
+        }
+        #map {
+            height: 100%;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .leaflet-popup-content {
+            margin: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .popup-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a237e;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #1a237e;
+            padding-bottom: 3px;
+            text-align: center;
+        }
+        .side-info {
+            margin-top: 8px;
+            padding: 6px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+        }
+        .side-title {
+            font-weight: 700;
+            color: #1a237e;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+        .cleaning-info {
+            margin-bottom: 3px;
+        }
+        .cleaning-info strong {
+            color: #333;
+        }
+        .calendar-button {
+            display: inline-block;
+            background-color: #4285f4;
+            color: white !important;
+            padding: 4px 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 11px;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 6px;
+        }
+        .calendar-button:hover,
+        .calendar-button:focus,
+        .calendar-button:active {
+            background-color: #3367d6;
+            color: white !important;
+            text-decoration: none;
+        }
+        .awesomplete {
+            width: 100%;
+        }
+        .awesomplete > ul {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .awesomplete > ul > li {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .awesomplete > ul > li:hover {
+            background-color: #f0f0f0;
+        }
+        .awesomplete mark {
+            background: #4285f4;
+            color: white;
+        }
+        .leaflet-pane {
+            z-index: 400;
+        }
+        .leaflet-top,
+        .leaflet-bottom {
+            z-index: 900;
+        }
+        .leaflet-popup {
+            z-index: 1100;
+        }
+        .leaflet-tooltip {
+            z-index: 1100;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SF Street Cleaning</h1>
+        <p>Find cleaning schedules for your neighborhood</p>
+    </div>
+    <div id="map-container">
+        <div id="search-container">
+            <input type="text" id="neighborhood-search" placeholder="Search for a neighborhood...">
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <div id="first-time-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Important Notice</h2>
+            <p>While this tool provides information about street cleaning schedules, always check the street signs for the most up-to-date and accurate information. This application should be used as a reference only and not as a definitive guide.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.5/awesomplete.min.js"></script>
+    <script>
+        const map = L.map('map').setView([37.7749, -122.4194], 12);
+        let currentGeoJSONLayer = null;
+        let allNeighborhoodsLayer = null;
+        let selectedNeighborhood = null;
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Check if it's the user's first visit
+        if (!localStorage.getItem('hasVisited')) {
+            document.getElementById('first-time-modal').style.display = 'block';
+            localStorage.setItem('hasVisited', 'true');
+        }
+
+        // Close modal functionality
+        document.querySelector('.close-button').onclick = function() {
+            document.getElementById('first-time-modal').style.display = 'none';
+        }
+
+        // Load neighborhood data
+        fetch('data/neighborhoods.geojson')
+            .then(response => response.json())
+            .then(data => {
+                const neighborhoods = data.features.map(feature => feature.properties.NeighborhoodName);
+                new Awesomplete(document.getElementById("neighborhood-search"), {
+                    list: neighborhoods,
+                    minChars: 1,
+                    autoFirst: true
+                });
+
+                document.getElementById("neighborhood-search").addEventListener("awesomplete-selectcomplete", function(e) {
+                    const selectedNeighborhoodName = e.text.value;
+                    const neighborhood = data.features.find(feature => feature.properties.NeighborhoodName === selectedNeighborhoodName);
+                    if (neighborhood) {
+                        loadNeighborhoodData(neighborhood);
+                    }
+                });
+
+                loadAllNeighborhoods(data);
+
+                // Load last selected neighborhood if exists
+                const lastNeighborhood = localStorage.getItem('lastNeighborhood');
+                if (lastNeighborhood) {
+                    const neighborhood = data.features.find(feature => feature.properties.NeighborhoodName === lastNeighborhood);
+                    if (neighborhood) {
+                        loadNeighborhoodData(neighborhood);
+                    }
+                }
+            })
+            .catch(error => console.error('Error loading neighborhood data:', error));
+
+        function loadAllNeighborhoods(data) {
+            allNeighborhoodsLayer = L.geoJSON(data, {
+                style: {
+                    color: "#ff7800",
+                    weight: 2,
+                    opacity: 0.65,
+                    fillOpacity: 0.1
+                },
+                onEachFeature: (feature, layer) => {
+                    layer.on('click', () => {
+                        loadNeighborhoodData(feature);
+                    });
+                    layer.bindTooltip(feature.properties.NeighborhoodName, {
+                        permanent: false,
+                        direction: 'center',
+                        className: 'neighborhood-tooltip'
+                    });
+                }
+            }).addTo(map);
+
+            map.fitBounds(allNeighborhoodsLayer.getBounds());
+        }
+
+        function loadNeighborhoodData(neighborhood) {
+            const fileName = neighborhood.properties.FileName;
+            loadGeoJSONFromFile(`data/neighborhoods/${fileName}.geojson`);
+
+            // Save selected neighborhood
+            localStorage.setItem('lastNeighborhood', neighborhood.properties.NeighborhoodName);
+
+            // Highlight selected neighborhood and hide its tooltip
+            allNeighborhoodsLayer.eachLayer(layer => {
+                if (layer.feature.properties.NeighborhoodName === neighborhood.properties.NeighborhoodName) {
+                    layer.setStyle({
+                        fillOpacity: 0.3,
+                        weight: 3
+                    });
+                    layer.unbindTooltip();
+                    selectedNeighborhood = layer;
+                } else {
+                    layer.setStyle({
+                        fillOpacity: 0.1,
+                        weight: 2
+                    });
+                    if (!layer.getTooltip()) {
+                        layer.bindTooltip(layer.feature.properties.NeighborhoodName, {
+                            permanent: false,
+                            direction: 'center',
+                            className: 'neighborhood-tooltip'
+                        });
+                    }
+                }
+            });
+
+            // Fit map to neighborhood boundary
+            map.fitBounds(L.geoJSON(neighborhood).getBounds());
+
+            // Update search bar with selected neighborhood
+            document.getElementById("neighborhood-search").value = neighborhood.properties.NeighborhoodName;
+        }
+
+        function formatDateString(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric'
+            });
+        }
+
+        function getRelevantCleaning(side) {
+            const now = new Date();
+            const nextCleaning = new Date(side.NextCleaning);
+            const nextNextCleaning = new Date(side.NextNextCleaning);
+
+            if (now < nextCleaning) {
+                return {
+                    cleaning: side.NextCleaning,
+                    cleaningEnd: side.NextCleaningEnd,
+                    calendarLink: side.NextCleaningCalendarLink
+                };
+            } else {
+                return {
+                    cleaning: side.NextNextCleaning,
+                    cleaningEnd: side.NextNextCleaningEnd,
+                    calendarLink: side.NextNextCleaningCalendarLink
+                };
+            }
+        }
+
+        function createSideInfo(sideName, sideData) {
+            const relevantCleaning = getRelevantCleaning(sideData);
+            const nextCleaning = formatDateString(relevantCleaning.cleaning);
+            const nextCleaningEnd = formatDateString(relevantCleaning.cleaningEnd);
+
+            return `
+                <div class="side-info">
+                    <div class="side-title">${sideName} Side</div>
+                    <div class="cleaning-info"><strong>Next:</strong> ${nextCleaning}</div>
+                    <div class="cleaning-info"><strong>Until:</strong> ${nextCleaningEnd}</div>
+                    <a href="${relevantCleaning.calendarLink}" target="_blank" class="calendar-button">Add to Calendar</a>
+                </div>
+            `;
+        }
+
+        function onEachFeature(feature, layer) {
+            if (feature.properties) {
+                let popupContent = `
+                    <div class="popup-title">${feature.properties.StreetIdentifier}</div>
+                `;
+
+                for (const [sideName, sideData] of Object.entries(feature.properties.Sides)) {
+                    popupContent += createSideInfo(sideName, sideData);
+                }
+
+                layer.bindPopup(popupContent, {
+                    maxWidth: 250
+                });
+
+                // Add an invisible wider line for easier tapping on mobile
+                if (isMobile) {
+                    const invisibleLine = L.polyline(layer.getLatLngs(), {
+                        color: 'transparent',
+                        weight: 20,
+                        opacity: 0
+                    }).addTo(map);
+                    invisibleLine.bindPopup(popupContent, {
+                        maxWidth: 250
+                    });
+                }
+            }
+        }
+
+        function loadGeoJSONFromFile(filePath) {
+            fetch(filePath)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (currentGeoJSONLayer) {
+                        map.removeLayer(currentGeoJSONLayer);
+                    }
+                    currentGeoJSONLayer = L.geoJSON(data, {
+                        style: function(feature) {
+                            return {
+                                color: "#1a237e",
+                                weight: isMobile ? 8 : 5,  // Increase line width for mobile
+                                opacity: 0.65
+                            };
+                        },
+                        onEachFeature: onEachFeature
+                    }).addTo(map);
+                })
+                .catch(error => {
+                    console.log('No data available for this neighborhood or error loading data.');
+                    if (currentGeoJSONLayer) {
+                        map.removeLayer(currentGeoJSONLayer);
+                    }
+                });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "sf-street-cleaning"
+version = "0.1.0"
+description = "My (mostly) non-ai version of the sf-street-cleaning app"
+authors = ["Kaushal Partani <kaushalpartani@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.2.3"
+geopandas = "^1.0.1"
+shapely = "^2.0.6"
+pendulum = "^3.0.0"
+fastapi = "^0.115.0"
+uvicorn = "^0.31.0"
+
+[tool.poetry.group.dev.dependencies]
+folium = "^0.17.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
