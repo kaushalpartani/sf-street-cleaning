@@ -5,6 +5,7 @@ import json
 import subprocess
 import os
 import sys
+import urllib.request
 
 app = FastAPI(title="SF Street Cleaning API")
 
@@ -20,23 +21,31 @@ async def root():
     return html_content
 
 @app.get("/neighborhoods")
-async def get_neighborhoods():
+def get_neighborhoods():
     try:
-        with open("data/neighborhoods.geojson", "r") as file:
-            data = json.load(file)
+        with urllib.request.urlopen("https://raw.githubusercontent.com/kaushalpartani/sf-street-cleaning/refs/heads/main/data/neighborhoods.geojson") as response:
+            if response.status != 200:
+                raise HTTPException(status_code=response.status, detail="Error fetching neighborhoods data")
+            data = json.loads(response.read().decode())
         return JSONResponse(content=data)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Neighborhoods data not found")
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=e.code, detail="Error fetching neighborhoods data")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 @app.get("/neighborhoods/{neighborhood}")
-async def get_neighborhood_data(neighborhood: str):
-    file_path = f"data/neighborhoods/{neighborhood}.geojson"
+def get_neighborhood_data(neighborhood: str):
+    url = f"https://raw.githubusercontent.com/kaushalpartani/sf-street-cleaning/refs/heads/main/data/neighborhoods/{neighborhood}.geojson"
     try:
-        with open(file_path, "r") as file:
-            data = json.load(file)
+        with urllib.request.urlopen(url) as response:
+            if response.status != 200:
+                raise HTTPException(status_code=response.status, detail=f"Error fetching data for {neighborhood}")
+            data = json.loads(response.read().decode())
         return JSONResponse(content=data)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"Data for {neighborhood} not found")
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=e.code, detail=f"Data for {neighborhood} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
 def run_transformation_script():
@@ -51,9 +60,6 @@ def run_transformation_script():
 
 if __name__ == "__main__":
     import uvicorn
-
-    print("Running data generation script...")
-    run_transformation_script()
 
     print("Starting the server...")
     uvicorn.run(app, host="0.0.0.0", port=8000)
