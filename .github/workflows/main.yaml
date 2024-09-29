@@ -50,4 +50,4 @@ jobs:
           git commit -m "Add generated files from transformations"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
