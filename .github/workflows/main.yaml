@@ -1,0 +1,53 @@
+name: Run sf-street-cleaning transformations
+
+on:
+  push:
+    branches:
+      - main  # You can change this to whatever branch you want the action to trigger on
+
+jobs:
+  run-transformations:
+    runs-on: ubuntu-latest
+
+    env:
+      DATA_PATH: ./data  # Set your DATA_PATH environment variable here
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  # Change this to your project's Python version
+
+      # Install Poetry
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "Poetry installed"
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          poetry install
+          echo "Dependencies installed"
+
+      # Run the transformation script
+      - name: Run transformations.py
+        run: |
+          poetry run python sf-street-cleaning/transformations.py
+          echo "Transformations script executed"
+
+      # Commit and push changes
+      - name: Commit and push changes
+        run: |
+          git config --local user.name "GitHub Action"
+          git config --local user.email "action@github.com"
+          git add .
+          git commit -m "Add generated files from transformations"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
