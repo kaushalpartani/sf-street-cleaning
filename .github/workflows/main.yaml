@@ -21,7 +21,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # Change this to your project's Python version
+          python-version: '3.12'  # Change this to your project's Python version
 
       # Install Poetry
       - name: Install Poetry
@@ -38,7 +38,7 @@ jobs:
       # Run the transformation script
       - name: Run transformations.py
         run: |
-          poetry run python /home/runner/work/sf-street-cleaning/pre_release_scripts/transformations.py
+          poetry run python pre_release_scripts/transformations.py
           echo "Transformations script executed"
 
       # Commit and push changes
