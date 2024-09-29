@@ -162,8 +162,8 @@ cython_debug/
 #.idea/
 
 # Added files
-data/*
-!data/.gitkeep
-!data/neighborhoods/.gitkeep
+#data/*
+#!data/.gitkeep
+#!data/neighborhoods/.gitkeep
 .DS_Store
 .idea/*
