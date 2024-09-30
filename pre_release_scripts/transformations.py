@@ -15,6 +15,7 @@ neighborhoods["FileName"] = [get_file_name(x) for x in neighborhoods["Neighborho
 neighborhoods.to_file(f"{os.environ['DATA_PATH']}/neighborhoods.geojson", driver="GeoJSON")
 
 df = pd.read_csv("https://data.sfgov.org/api/views/yhqp-riqs/rows.csv?date=20240922&accessType=DOWNLOAD")
+df["BlockSide"] = df["BlockSide"].fillna(df["CNNRightLeft"])
 df = df.dropna(subset=["Line"])
 df["geometry"] = geopandas.GeoSeries.from_wkt(df["Line"])
 df = geopandas.GeoDataFrame(df)
