@@ -13,7 +13,7 @@ app = FastAPI(title="SF Street Cleaning API")
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Read the HTML content
-with open("street-cleaning-map.html", "r") as file:
+with open("index.html", "r") as file:
     html_content = file.read()
 
 @app.get("/", response_class=HTMLResponse)

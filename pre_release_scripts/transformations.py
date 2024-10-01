@@ -112,34 +112,23 @@ def enrich_data(row):
 df = df.apply(enrich_data, axis=1)
 df = df[["Corridor", "Limits", "BlockSide", "geometry", "NeighborhoodName", "NextCleaning", "NextNextCleaning", "NextCleaningEnd", "NextNextCleaningEnd", "NextCleaningCalendarLink", "NextNextCleaningCalendarLink", "StreetIdentifier", "FileName"]]
 
-def sort_group_and_pick_columns(df, agg_columns, sort_columns, pick_columns):
-    grouped_df = df.sort_values(sort_columns)
-    pick_mapping = {x:"first" for x in pick_columns}
-    grouped_df = grouped_df.groupby(agg_columns).agg(pick_mapping)
-    return grouped_df
-
-def merge_grouped_df(source_df, merged_df, on_columns, renamed_names):
-    ret_df = source_df.merge(merged_df, on=on_columns)
-    for renamed_name in renamed_names:
-        ret_df = ret_df[ret_df[f"{renamed_name}_x"] == ret_df[f"{renamed_name}_y"]].drop(f"{renamed_name}_y", axis=1)
-        ret_df = ret_df.rename(columns={f"{renamed_name}_x":renamed_name})
-    return ret_df
-
-grouped_df_next_cleaning = sort_group_and_pick_columns(df, ["geometry", "BlockSide"], ["NextCleaning"], ["NextCleaning", "NextCleaningEnd", "NextCleaningCalendarLink"])
-grouped_df_next_next_cleaning = sort_group_and_pick_columns(df, ["geometry", "BlockSide"], ["NextNextCleaning"], ["NextNextCleaning", "NextNextCleaningEnd", "NextNextCleaningCalendarLink"])
-
-step_1 = merge_grouped_df(df, grouped_df_next_cleaning, on_columns=["geometry", "BlockSide"], renamed_names=["NextCleaning", "NextCleaningEnd", "NextCleaningCalendarLink"])
-step_2 = merge_grouped_df(step_1, grouped_df_next_next_cleaning, on_columns=["geometry", "BlockSide"], renamed_names=["NextNextCleaning", "NextNextCleaningEnd", "NextNextCleaningCalendarLink"])
+idx_min_next_cleaning = df.groupby(['geometry', 'BlockSide'])['NextCleaning'].idxmin()
+idx_min_next_next_cleaning = df.groupby(['geometry', 'BlockSide'])['NextNextCleaning'].idxmin()
+df_next_cleaning_min = df.loc[idx_min_next_cleaning].copy()
+df_next_cleaning_min['NextNextCleaning'] = df.loc[idx_min_next_next_cleaning, 'NextNextCleaning'].values
+df_next_next_cleaning_min = df.loc[idx_min_next_next_cleaning].copy()
+df_next_next_cleaning_min['NextCleaning'] = df.loc[idx_min_next_cleaning, 'NextCleaning'].values
+combined_df = pd.concat([df_next_cleaning_min, df_next_next_cleaning_min])
+combined_df = combined_df.drop_duplicates(subset=['geometry', 'BlockSide', 'NextCleaning', 'NextNextCleaning'])
 
 columns = ['NextCleaning', 'NextNextCleaning', 'NextCleaningEnd', 'NextNextCleaningEnd', 'NextCleaningCalendarLink', 'NextNextCleaningCalendarLink']
-step_2['metadata'] = step_2[columns].to_dict(orient='records')
-step_2 = step_2.drop(columns=columns)
+combined_df['metadata'] = combined_df[columns].to_dict(orient='records')
+combined_df = combined_df.drop(columns=columns)
 
 def apply_fn(group):
     return dict(sorted(zip(group["BlockSide"], group["metadata"])))
-# new_df = step_2.merge(step_2.groupby(["geometry"]).apply(apply_fn), on=["geometry"])
-group_df = step_2.groupby(["geometry"])[["BlockSide", "metadata"]].apply(apply_fn).reset_index(name='Sides')
-group_df = step_2.merge(group_df, on="geometry").drop(columns=["BlockSide", "metadata"])
+group_df = combined_df.groupby(["geometry"])[["BlockSide", "metadata"]].apply(apply_fn).reset_index(name='Sides')
+group_df = combined_df.merge(group_df, on="geometry").drop(columns=["BlockSide", "metadata"])
 
 def split_neighborhoods_and_write_to_file(df):
     sorted_df = df.sort_values(by='FileName')
