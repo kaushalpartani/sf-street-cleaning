@@ -128,7 +128,7 @@ combined_df = combined_df.drop(columns=columns)
 def apply_fn(group):
     return dict(sorted(zip(group["BlockSide"], group["metadata"])))
 group_df = combined_df.groupby(["geometry"])[["BlockSide", "metadata"]].apply(apply_fn).reset_index(name='Sides')
-group_df = combined_df.merge(group_df, on="geometry").drop(columns=["BlockSide", "metadata"]).drop_duplicates()
+group_df = combined_df.merge(group_df, on="geometry").drop(columns=["BlockSide", "metadata"]).drop_duplicates(['geometry', 'NeighborhoodName'])
 
 def split_neighborhoods_and_write_to_file(df):
     sorted_df = df.sort_values(by='FileName')
