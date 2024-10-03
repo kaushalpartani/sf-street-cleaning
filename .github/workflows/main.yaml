@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main  # You can change this to whatever branch you want the action to trigger on
+  schedule:
+    - cron: '0 15 * * *'
 
 jobs:
   run-transformations:

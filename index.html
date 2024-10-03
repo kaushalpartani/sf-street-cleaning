@@ -49,7 +49,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            width: 90%;
+            width: 75%;
             max-width: 400px;
         }
         #neighborhood-search {
@@ -199,7 +199,6 @@
             text-decoration: none;
             cursor: pointer;
         }
-
         .menu-button {
             position: absolute;
             left: 20px;
@@ -212,7 +211,6 @@
             cursor: pointer;
             z-index: 1001;
         }
-
         .sidebar {
             position: fixed;
             left: -250px;
@@ -224,15 +222,12 @@
             transition: left 0.3s ease;
             z-index: 1500;
         }
-
         .sidebar.open {
             left: 0;
         }
-
         .sidebar-content {
             padding: 20px;
         }
-
         .sidebar-option {
             display: block;
             padding: 10px 0;
@@ -241,31 +236,93 @@
             font-size: 16px;
             transition: background-color 0.3s, color 0.3s;
         }
-
         .sidebar-option:hover {
             background-color: #f0f0f0;
             color: #1a237e;
         }
-
-        /* Improved header responsiveness */
-        @media (max-width: 600px) {
+        #location-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 4px;
+            padding: 5px;
+            cursor: pointer;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+        }
+        #location-button:hover {
+            background-color: #f4f4f4;
+        }
+        #location-button i {
+            display: block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            font-size: 20px;
+            color: #444;
+        }
+        @media (max-width: 768px) {
             .header {
                 padding: 15px 0;
             }
-
             .header h1 {
                 font-size: 20px;
             }
-
             .header p {
                 font-size: 12px;
             }
-
+            #search-container {
+                top: 10px;
+                width: 75%;
+                max-width: none;
+            }
+            #neighborhood-search {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+        }
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            .header p {
+                font-size: 11px;
+            }
+            #search-container {
+                top: 5px;
+                width: 75%;
+            }
+            #neighborhood-search {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
             .menu-button {
                 left: 10px;
                 font-size: 20px;
             }
         }
+
+        .user-location-icon {
+            position: relative;
+            width: 20px;
+            height: 20px;
+        }
+
+        .user-location-dot {
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 0;
+            top: 0;
+            background-color: #4285f4;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
     </style>
 </head>
 <body>
@@ -290,6 +347,9 @@
             <input type="text" id="neighborhood-search" placeholder="Search for a neighborhood...">
         </div>
         <div id="map"></div>
+        <button id="location-button" title="Show my location">
+            <i class="fas fa-location-arrow"></i>
+        </button>
     </div>
 
     <div id="about-modal" class="modal">
@@ -315,6 +375,9 @@
         let currentGeoJSONLayer = null;
         let allNeighborhoodsLayer = null;
         let selectedNeighborhood = null;
+        let userLocationMarker = null;
+        let userLocation = null;
+
 
         function initializeMap() {
             if (map) {
@@ -332,6 +395,11 @@
             // Re-add all neighborhoods layer
             if (allNeighborhoodsLayer) {
                 allNeighborhoodsLayer.addTo(map);
+            }
+
+            // Re-add user location marker if it exists
+            if (userLocationMarker) {
+                userLocationMarker.addTo(map);
             }
         }
 
@@ -529,6 +597,54 @@
             }
         }
 
+        function showUserLocation() {
+            if (userLocation) {
+                // If we already have the user's location, just refocus the map
+                focusUserLocation();
+            } else if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    addUserLocationMarker();
+                    focusUserLocation();
+                }, function(error) {
+                    console.log("User denied geolocation");
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+            } else {
+                console.log("Geolocation is not supported by this browser");
+            }
+        }
+
+        function addUserLocationMarker() {
+            // Remove existing marker if any
+            if (userLocationMarker) {
+                map.removeLayer(userLocationMarker);
+            }
+
+            // Create a custom icon for the user's location
+            const userIcon = L.divIcon({
+                className: 'user-location-icon',
+                html: `<div class="user-location-dot"></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            // Add marker to the map
+            userLocationMarker = L.marker([userLocation.lat, userLocation.lng], {icon: userIcon}).addTo(map);
+        }
+
+        function focusUserLocation() {
+            if (userLocation) {
+                map.setView([userLocation.lat, userLocation.lng], 15);
+            }
+        }
+
         // Initial map setup
         initializeMap();
 
@@ -607,6 +723,9 @@
                 event.target.style.display = 'none';
             }
         }
+
+        // Location button functionality
+        document.getElementById('location-button').addEventListener('click', showUserLocation);
     </script>
 </body>
 </html>

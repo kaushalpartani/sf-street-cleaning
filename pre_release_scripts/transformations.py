@@ -112,14 +112,14 @@ def enrich_data(row):
 df = df.apply(enrich_data, axis=1)
 df = df[["Corridor", "Limits", "BlockSide", "geometry", "NeighborhoodName", "NextCleaning", "NextNextCleaning", "NextCleaningEnd", "NextNextCleaningEnd", "NextCleaningCalendarLink", "NextNextCleaningCalendarLink", "StreetIdentifier", "FileName"]]
 
-idx_min_next_cleaning = df.groupby(['geometry', 'BlockSide'])['NextCleaning'].idxmin()
-idx_min_next_next_cleaning = df.groupby(['geometry', 'BlockSide'])['NextNextCleaning'].idxmin()
+idx_min_next_cleaning = df.groupby(['geometry', 'BlockSide', 'NeighborhoodName'])['NextCleaning'].idxmin()
+idx_min_next_next_cleaning = df.groupby(['geometry', 'BlockSide', 'NeighborhoodName'])['NextNextCleaning'].idxmin()
 df_next_cleaning_min = df.loc[idx_min_next_cleaning].copy()
 df_next_cleaning_min['NextNextCleaning'] = df.loc[idx_min_next_next_cleaning, 'NextNextCleaning'].values
 df_next_next_cleaning_min = df.loc[idx_min_next_next_cleaning].copy()
 df_next_next_cleaning_min['NextCleaning'] = df.loc[idx_min_next_cleaning, 'NextCleaning'].values
 combined_df = pd.concat([df_next_cleaning_min, df_next_next_cleaning_min])
-combined_df = combined_df.drop_duplicates(subset=['geometry', 'BlockSide', 'NextCleaning', 'NextNextCleaning'])
+combined_df = combined_df.drop_duplicates(subset=['geometry', 'BlockSide', 'NeighborhoodName', 'NextCleaning', 'NextNextCleaning'])
 
 columns = ['NextCleaning', 'NextNextCleaning', 'NextCleaningEnd', 'NextNextCleaningEnd', 'NextCleaningCalendarLink', 'NextNextCleaningCalendarLink']
 combined_df['metadata'] = combined_df[columns].to_dict(orient='records')
@@ -128,7 +128,7 @@ combined_df = combined_df.drop(columns=columns)
 def apply_fn(group):
     return dict(sorted(zip(group["BlockSide"], group["metadata"])))
 group_df = combined_df.groupby(["geometry"])[["BlockSide", "metadata"]].apply(apply_fn).reset_index(name='Sides')
-group_df = combined_df.merge(group_df, on="geometry").drop(columns=["BlockSide", "metadata"])
+group_df = combined_df.merge(group_df, on="geometry").drop(columns=["BlockSide", "metadata"]).drop_duplicates(['geometry', 'NeighborhoodName'])
 
 def split_neighborhoods_and_write_to_file(df):
     sorted_df = df.sort_values(by='FileName')
