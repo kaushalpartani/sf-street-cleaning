@@ -166,4 +166,4 @@ cython_debug/
 #!data/.gitkeep
 #!data/neighborhoods/.gitkeep
 .DS_Store
-.idea/*
+.idea

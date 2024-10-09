@@ -1,8 +1,14 @@
 # sf-street-cleaning
-My (mostly) non-ai (for the backend, which doesn't mean much) version of the sf-street-cleaning app
+Click a neighborhood, find a street, and add a reminder to your calendar! Data sourced from DataSF.
 
-Running locally requires the `DATA_PATH` env var
+This project uses poetry for dependency management.
+
+```
+poetry install
+```
+
+Running transformations locally requires the `DATA_PATH` env var. Run the transformations script from within the virtual env.
 ```commandline
 export DATA_PATH="/Users/kaushal/workplace/sf-street-cleaning/data"
-python main.py
+python transformations.py
 ```
