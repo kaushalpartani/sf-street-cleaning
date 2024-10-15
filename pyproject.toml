@@ -11,8 +11,6 @@ pandas = "^2.2.3"
 geopandas = "^1.0.1"
 shapely = "^2.0.6"
 pendulum = "^3.0.0"
-fastapi = "^0.115.0"
-uvicorn = "^0.31.0"
 
 [tool.poetry.group.dev.dependencies]
 folium = "^0.17.0"
