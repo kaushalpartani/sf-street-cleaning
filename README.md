@@ -12,3 +12,6 @@ Running transformations locally requires the `DATA_PATH` env var. Run the transf
 export DATA_PATH="/Users/kaushal/workplace/sf-street-cleaning/data"
 python transformations.py
 ```
+
+## TODO
+- [ ] Update cicd to remove the pin on poetry version and use a 2.x version instead
