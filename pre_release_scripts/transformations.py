@@ -105,7 +105,7 @@ def main():
     neighborhoods["FileName"] = [get_file_name(x) for x in neighborhoods["NeighborhoodName"]]
     neighborhoods.to_file(f"{os.environ['DATA_PATH']}/neighborhoods.geojson", driver="GeoJSON")
 
-    df = pd.read_csv(f"https://data.sfgov.org/api/views/xsry-uuyt/rows.csv?date={pendulum.today().format('YYYYMMDD')}&accessType=DOWNLOAD")
+    df = pd.read_csv(f"https://data.sfgov.org/api/views/yhqp-riqs/rows.csv?date={pendulum.today().format('YYYYMMDD')}&accessType=DOWNLOAD")
     df["BlockSide"] = df["BlockSide"].fillna(df["CNNRightLeft"])
     df = df.dropna(subset=["Line"])
     df["geometry"] = geopandas.GeoSeries.from_wkt(df["Line"])
