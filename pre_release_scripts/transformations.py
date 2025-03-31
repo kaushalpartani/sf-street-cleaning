@@ -3,6 +3,8 @@ import geopandas
 import pendulum
 import os
 
+CRS = "WGS84"
+
 def get_file_name(neighborhood_name):
     return ''.join(ch for ch in neighborhood_name if ch.isalnum())
 
@@ -19,7 +21,13 @@ def get_week_of_month(date):
     else:
         return 5
 
-def week_aware_get_next_time(base_time, weekday, hour, week_mapping):
+def week_aware_get_next_time(base_time, weekday, weekday_fallback, hour, week_mapping):
+    # TODO: Fix this if the dataset ever gets fixed. The weekday_fallback is a
+    # solution to multi-week schedules being null in the "weekday" column.
+    # I have asked datasf to fix this issue.
+    if pd.isna(weekday) and not pd.isna(weekday_fallback):
+        weekday = weekday_fallback[0:3]
+
     next_time = get_next_time(base_time, weekday, hour)
     while not week_mapping.get(f"Week{get_week_of_month(next_time)}"):
         next_time = get_next_time(next_time, weekday, hour)
@@ -28,6 +36,7 @@ def week_aware_get_next_time(base_time, weekday, hour, week_mapping):
 def get_next_time(base_time, weekday, hour):
     mapping = {"Mon": pendulum.MONDAY,
                "Tues": pendulum.TUESDAY,
+               "Tue": pendulum.TUESDAY,
                "Wed": pendulum.WEDNESDAY,
                "Thu": pendulum.THURSDAY,
                "Fri": pendulum.FRIDAY,
@@ -59,10 +68,12 @@ def enrich_data(row):
     week_mapping = {f"Week{x}": row.get(f"Week{x}") for x in range(1, 6)}
     next_cleaning = week_aware_get_next_time(week_mapping=week_mapping,
                                              base_time=pendulum.now(tz='America/Los_Angeles'),
-                                             weekday=row.get("WeekDay"), hour=row.get("FromHour"))
+                                             weekday=row.get("WeekDay"), weekday_fallback=row.get("FullName"),
+                                             hour=row.get("FromHour"))
     next_cleaning_end = next_cleaning.set(hour=row.get("ToHour"))
     next_next_cleaning = week_aware_get_next_time(week_mapping=week_mapping, base_time=next_cleaning,
-                                                  weekday=row.get("WeekDay"), hour=row.get("FromHour"))
+                                                  weekday=row.get("WeekDay"), weekday_fallback=row.get("FullName"),
+                                                  hour=row.get("FromHour"))
     next_next_cleaning_end = next_next_cleaning.set(hour=row.get("ToHour"))
 
     next_cleaning_str, next_next_cleaning_str, next_cleaning_end_str, next_next_cleaning_end_str = [
@@ -98,20 +109,20 @@ def split_neighborhoods_and_write_to_file(df):
 
 def main():
     neighborhoods = pd.read_csv(f"https://data.sfgov.org/api/views/gfpk-269f/rows.csv?date={pendulum.today().format('YYYYMMDD')}&accessType=DOWNLOAD")
-    neighborhoods["geometry"] = geopandas.GeoSeries.from_wkt(neighborhoods["the_geom"])
+    neighborhoods["geometry"] = geopandas.GeoSeries.from_wkt(neighborhoods["the_geom"], crs=CRS)
     neighborhoods = neighborhoods[["geometry", "name"]]
     neighborhoods = neighborhoods.rename(columns={"name": "NeighborhoodName"})
-    neighborhoods = geopandas.GeoDataFrame(neighborhoods)
+    neighborhoods = geopandas.GeoDataFrame(neighborhoods, crs=CRS)
     neighborhoods["FileName"] = [get_file_name(x) for x in neighborhoods["NeighborhoodName"]]
     neighborhoods.to_file(f"{os.environ['DATA_PATH']}/neighborhoods.geojson", driver="GeoJSON")
 
     df = pd.read_csv(f"https://data.sfgov.org/api/views/yhqp-riqs/rows.csv?date={pendulum.today().format('YYYYMMDD')}&accessType=DOWNLOAD")
     df["BlockSide"] = df["BlockSide"].fillna(df["CNNRightLeft"])
     df = df.dropna(subset=["Line"])
-    df["geometry"] = geopandas.GeoSeries.from_wkt(df["Line"])
-    df = geopandas.GeoDataFrame(df)
+    df["geometry"] = geopandas.GeoSeries.from_wkt(df["Line"], crs=CRS)
+    df = geopandas.GeoDataFrame(df, crs=CRS)
     df = df.sjoin(neighborhoods, predicate="intersects")
-    df = df[["Corridor", "Limits", "BlockSide", "WeekDay", "FromHour", "ToHour", "Week1", "Week2", "Week3", "Week4", "Week5", "Holidays", "geometry", "NeighborhoodName"]]
+    df = df[["Corridor", "Limits", "BlockSide", "WeekDay", "FullName", "FromHour", "ToHour", "Week1", "Week2", "Week3", "Week4", "Week5", "Holidays", "geometry", "NeighborhoodName"]]
 
     df = df.apply(enrich_data, axis=1)
     df = df[["Corridor", "Limits", "BlockSide", "geometry", "NeighborhoodName", "NextCleaning", "NextNextCleaning", "NextCleaningEnd", "NextNextCleaningEnd", "NextCleaningCalendarLink", "NextNextCleaningCalendarLink", "StreetIdentifier", "FileName"]]
