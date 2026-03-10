@@ -123,6 +123,8 @@ def main():
     df = geopandas.GeoDataFrame(df, crs=CRS)
     df = df.sjoin(neighborhoods, predicate="intersects")
     df = df[["Corridor", "Limits", "BlockSide", "WeekDay", "FullName", "FromHour", "ToHour", "Week1", "Week2", "Week3", "Week4", "Week5", "Holidays", "geometry", "NeighborhoodName"]]
+    df["FromHour"] = df["FromHour"].astype(int)
+    df["ToHour"] = df["ToHour"].astype(int)
 
     df = df.apply(enrich_data, axis=1)
     df = df[["Corridor", "Limits", "BlockSide", "geometry", "NeighborhoodName", "NextCleaning", "NextNextCleaning", "NextCleaningEnd", "NextNextCleaningEnd", "NextCleaningCalendarLink", "NextNextCleaningCalendarLink", "StreetIdentifier", "FileName"]]
