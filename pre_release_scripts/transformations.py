@@ -108,7 +108,7 @@ def split_neighborhoods_and_write_to_file(df):
         neighborhood_df.to_file(f"{os.environ['DATA_PATH']}/neighborhoods/{name}.geojson", driver="GeoJSON")
 
 def main():
-    neighborhoods = pd.read_csv(f"https://data.sfgov.org/api/views/gfpk-269f/rows.csv?date={pendulum.today().format('YYYYMMDD')}&accessType=DOWNLOAD")
+    neighborhoods = pd.read_csv("https://data.sfgov.org/api/id/gfpk-269f.csv")
     neighborhoods["geometry"] = geopandas.GeoSeries.from_wkt(neighborhoods["the_geom"], crs=CRS)
     neighborhoods = neighborhoods[["geometry", "name"]]
     neighborhoods = neighborhoods.rename(columns={"name": "NeighborhoodName"})
@@ -116,7 +116,14 @@ def main():
     neighborhoods["FileName"] = [get_file_name(x) for x in neighborhoods["NeighborhoodName"]]
     neighborhoods.to_file(f"{os.environ['DATA_PATH']}/neighborhoods.geojson", driver="GeoJSON")
 
-    df = pd.read_csv(f"https://data.sfgov.org/api/views/yhqp-riqs/rows.csv?date={pendulum.today().format('YYYYMMDD')}&accessType=DOWNLOAD")
+    df = pd.read_csv("https://data.sfgov.org/api/id/yhqp-riqs.csv")
+    # The SODA 3.x export endpoint returns lowercase API field names; map them
+    # to the display names used throughout this script.
+    df = df.rename(columns={"corridor": "Corridor", "limits": "Limits", "cnnrightleft": "CNNRightLeft",
+                            "blockside": "BlockSide", "weekday": "WeekDay", "fullname": "FullName",
+                            "fromhour": "FromHour", "tohour": "ToHour", "week1": "Week1", "week2": "Week2",
+                            "week3": "Week3", "week4": "Week4", "week5": "Week5", "holidays": "Holidays",
+                            "line": "Line"})
     df["BlockSide"] = df["BlockSide"].fillna(df["CNNRightLeft"])
     df = df.dropna(subset=["Line"])
     df["geometry"] = geopandas.GeoSeries.from_wkt(df["Line"], crs=CRS)
